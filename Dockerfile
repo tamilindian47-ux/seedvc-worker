@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir runpod
 
 WORKDIR /app
-COPY handler.py /app/handler.py
+COPY src/handler.py /app/handler.py
+COPY handler.py /app/src/handler.py
 
 CMD ["python", "-u", "/app/handler.py"]

@@ -23,13 +23,13 @@ def handler(job):
     source_b64 = job_input.get("source_b64")
     reference_b64 = job_input.get("reference_b64")
 
-    # Your proven 5-step fast default
-    steps = int(job_input.get("steps", 5))
-    cfg = float(job_input.get("cfg", 0.7))
+    # Accept both naming styles so no inputs are ignored
+    steps = int(job_input.get("diffusion_steps", job_input.get("steps", 5)))
+    cfg = float(job_input.get("inference_cfg_rate", job_input.get("cfg", 0.7)))
     length_adjust = float(job_input.get("length_adjust", 1.0))
     f0 = str(job_input.get("f0_condition", False)).capitalize()
     auto_f0 = str(job_input.get("auto_f0_adjust", False)).capitalize()
-    semitone = int(job_input.get("semitone_shift", 0))
+    semitone = int(job_input.get("pitch_shift", job_input.get("semitone_shift", 0)))
 
     if not source_b64 or not reference_b64:
         return {"error": "Missing source_b64 or reference_b64 audio"}
@@ -77,8 +77,16 @@ def handler(job):
         if not out_files:
             return {"error": "Inference succeeded but no output WAV was generated."}
 
-        out_b64 = base64.b64encode(out_files[0].read_bytes()).decode("ascii")
-        return {"audio_b64": out_b64, "filename": "converted.wav"}
+        # Convert output to 192kbps MP3 to keep response well below RunPod's 10MB limit
+        out_mp3 = tmp / "converted.mp3"
+        subprocess.run([
+            "ffmpeg", "-y", "-i", str(out_files[0]),
+            "-codec:a", "libmp3lame", "-b:a", "192k",
+            str(out_mp3)
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        out_b64 = base64.b64encode(out_mp3.read_bytes()).decode("ascii")
+        return {"audio_b64": out_b64, "filename": "converted.mp3"}
 
 if __name__ == "__main__":
     runpod.serverless.start({"handler": handler})

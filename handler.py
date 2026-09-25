@@ -80,4 +80,5 @@ def handler(job):
         out_b64 = base64.b64encode(out_files[0].read_bytes()).decode("ascii")
         return {"audio_b64": out_b64, "filename": "converted.wav"}
 
-runpod.serverless.start({"handler": handler})
+if __name__ == "__main__":
+    runpod.serverless.start({"handler": handler})
